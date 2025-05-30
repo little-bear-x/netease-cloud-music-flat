@@ -320,7 +320,7 @@ class MusicApi:
         result = self._request("POST", path, params)
         return to_song_info(json.dumps(result), "cloud")
 
-    def song_list_detail(self, songlist_id: int) -> PlayListDetail:
+    def playlist_detail(self, songlist_id: int) -> PlayListDetail:
         """Get playlist details."""
         path = "/api/v6/playlist/detail"
         params = {
@@ -331,7 +331,7 @@ class MusicApi:
             "n": "1000",
         }
         result = self._request("POST", path, params)
-        return to_play_list_detail(result)
+        return to_play_list_detail(result.get("playlist", {}))
 
     def songs_detail(self, ids: List[int]) -> List[SongInfo]:
         """Get details for multiple songs."""

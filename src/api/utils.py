@@ -171,7 +171,7 @@ def to_play_list_detail(data: Dict[str, Any]) -> PlayListDetail:
         description=data.get("description", ""),
         tags=data.get("tags", []),
         creator=data.get("creator", {}),
-        tracks=to_song_info(json.dumps({"songs": data.get("tracks", [])}), "playlist"),
+        tracks=[to_songinfo(json.dumps(song)) for song in data.get("tracks", [])],
     )
 
 

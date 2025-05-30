@@ -5,6 +5,7 @@
 import flet as ft
 import pages.homepage as homepage
 import pages.search as search
+import pages.playlist as playlist
 import api
 
 
@@ -40,6 +41,10 @@ class App:
         elif self.troute.match("/search_result/:query"):
             print(f"Search query: {self.troute.query}")
             self.page.views.append(search.SearchResultPage(self.troute.query, api=self.api))
+        elif self.troute.match("/playlist/:id"):
+            playlist_id = int(self.troute.id)
+            print(f"Loading playlist with ID: {playlist_id}")
+            self.page.views.append(playlist.PlaylistPage(playlist_id, self.api))
         else:
             # 处理未知路由，重定向到首页
             print("Unknown route, redirecting to home")

@@ -73,6 +73,8 @@ class Homepage(ft.View):
         # 创建内容列表
         content = []
 
+        button = ft.TextButton()
+
         # 添加推荐歌单
         if top_song_list:
             content.extend(
@@ -85,21 +87,25 @@ class Homepage(ft.View):
                         spacing=90,
                         run_spacing=20,
                         controls=[
-                            ft.Column(
-                                controls=[
-                                    ft.Image(
-                                        src=playlist.coverImgUrl,
-                                        width=180,
-                                        height=180,
-                                        fit=ft.ImageFit.COVER,
-                                        border_radius=10,
-                                    ),
-                                    ft.Text(
-                                        playlist.name,
-                                        no_wrap=False,
-                                        max_lines=2,
-                                    ),
-                                ],
+                            ft.TextButton(
+                                content=ft.Column(
+                                    controls=[
+                                        ft.Image(
+                                            src=playlist.coverImgUrl,
+                                            width=180,
+                                            height=180,
+                                            fit=ft.ImageFit.COVER,
+                                            border_radius=10,
+                                        ),
+                                        ft.Text(
+                                            playlist.name,
+                                            no_wrap=False,
+                                            max_lines=2,
+                                        ),
+                                    ],
+                                ),
+                                expand=True,
+                                on_click=lambda e, p=playlist: self.to_songlist(p.id),
                             )
                             for playlist in (
                                 top_song_list
@@ -118,3 +124,10 @@ class Homepage(ft.View):
                 spacing=20,
             )
         ]
+    
+    def to_songlist(self, songlist_id: int):
+        """跳转到歌单页面"""
+        # print(f"跳转到歌单页面: {songlist_id}")
+        # print(self.api.playlist_detail(songlist_id))  # 调试输出
+        self.page.go(f"/playlist/{songlist_id}")  # type: ignore
+
