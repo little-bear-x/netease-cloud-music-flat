@@ -15,27 +15,52 @@ import httpx
 from .constants import BASE_URL, TIMEOUT, USER_AGENT_LIST, LINUX_USER_AGENT
 from .encrypt import Crypto
 from .models import (
-    Msg, LoginInfo, SingerInfo, BannersInfo, SongUrl, Lyrics,
-    SongInfo, SongList, AlbumInfo, AlbumDetail, AlbumDetailDynamic,
-    PlayListDetail, PlayListDetailDynamic, TopList, Comment, ClientType
+    Msg,
+    LoginInfo,
+    SingerInfo,
+    BannersInfo,
+    SongUrl,
+    Lyrics,
+    SongInfo,
+    SongList,
+    AlbumInfo,
+    AlbumDetail,
+    AlbumDetailDynamic,
+    PlayListDetail,
+    PlayListDetailDynamic,
+    TopList,
+    Comment,
+    ClientType,
 )
 from .utils import (
-    choose_user_agent, build_url, build_linux_api_data,
-    to_login_info, to_msg, to_song_id_list, to_song_info,
-    to_play_list_detail, to_album_detail, to_banners_info,
-    to_song_list_from_songs
+    choose_user_agent,
+    build_url,
+    build_linux_api_data,
+    to_login_info,
+    to_msg,
+    to_song_id_list,
+    to_songinfo,
+    to_playlist,
+    to_play_list_detail,
+    to_album_detail,
+    to_banners_info,
+    to_song_list_from_songs,
 )
+
 
 def create_random_string(length: int) -> str:
     """Create a random string of specified length."""
-    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
+    return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
+
 
 class CryptoApi(Enum):
     """Encryption methods for different API endpoints."""
+
     WEAPI = "weapi"
     LINUX_API = "linuxapi"
     EAPI = "eapi"
     API = "api"
+
 
 class MusicApi:
     """NetEase Cloud Music API client."""
@@ -45,18 +70,18 @@ class MusicApi:
         self.client = httpx.Client(
             timeout=TIMEOUT,
             follow_redirects=True,
-            limits=httpx.Limits(max_connections=max_connections or None)
+            limits=httpx.Limits(max_connections=max_connections or None),
         )
         self._csrf_token = ""
         self._cookies = {
             "os": "pc",
             "appver": "2.7.1.198277",
-            "_ntes_nuid": create_random_string(32)
+            "_ntes_nuid": create_random_string(32),
         }
 
     def _extract_csrf_token(self, cookies: Dict[str, str]) -> None:
         """Extract CSRF token from cookies."""
-        cookie_str = '; '.join([f"{k}={v}" for k, v in cookies.items()])
+        cookie_str = "; ".join([f"{k}={v}" for k, v in cookies.items()])
         csrf_match = re.search(r"__csrf=([^(;|$)]+)", cookie_str)
         if csrf_match:
             self._csrf_token = csrf_match.group(1)
@@ -86,9 +111,10 @@ class MusicApi:
             "Host": "music.163.com",
             "Referer": "https://music.163.com",
             "User-Agent": (
-                LINUX_USER_AGENT if crypto_type == CryptoApi.LINUX_API
+                LINUX_USER_AGENT
+                if crypto_type == CryptoApi.LINUX_API
                 else choose_user_agent(ua_type)
-            )
+            ),
         }
 
         data = None
@@ -118,27 +144,27 @@ class MusicApi:
                 url=url,
                 data=data,
                 headers=headers,
-                cookies=self._cookies
+                cookies=self._cookies,
             )
             resp.raise_for_status()
-            
+
             # Print response info for debugging
             # print(f"Response status: {resp.status_code}")
             # print(f"Response headers: {resp.headers}")
             # print(f"Response cookies: {resp.cookies}")
             # print(f"Response text: {resp.text}")
-            
+
             # Update cookies and CSRF token
             self._cookies.update(dict(resp.cookies))
             self._extract_csrf_token(dict(resp.cookies))
             # print(f"Cookies after: {self._cookies}")
-            
+
             result = resp.json()
             return result
         except Exception as e:
             print(f"Request failed: {str(e)}")
-            if isinstance(e, httpx.HTTPError) and hasattr(e, 'response'):
-                response = getattr(e, 'response', None)
+            if isinstance(e, httpx.HTTPError) and hasattr(e, "response"):
+                response = getattr(e, "response", None)
                 if response:
                     print(f"Response status: {response.status_code}")
                     print(f"Response text: {response.text}")
@@ -146,11 +172,8 @@ class MusicApi:
 
     def login(self, username: str, password: str) -> LoginInfo:
         """Login with username (email/phone) and password."""
-        params = {
-            "password": password,
-            "rememberLogin": "true"
-        }
-        
+        params = {"password": password, "rememberLogin": "true"}
+
         if len(username) == 11 and username.isdigit():
             # Phone number login
             path = "/api/login/cellphone"
@@ -159,8 +182,10 @@ class MusicApi:
             # Email login
             path = "/weapi/login"
             params["username"] = username
-            params["clientToken"] = "1_jVUMqWEPke0/1/Vu56xCmJpo5vP1grjn_SOVVDzOc78w8OKLVZ2JH7IfkjSXqgfmh"
-            
+            params["clientToken"] = (
+                "1_jVUMqWEPke0/1/Vu56xCmJpo5vP1grjn_SOVVDzOc78w8OKLVZ2JH7IfkjSXqgfmh"
+            )
+
         result = self._request("POST", path, params)
         return to_login_info(json.dumps(result))
 
@@ -171,7 +196,7 @@ class MusicApi:
             "phone": phone,
             "countrycode": ctcode,
             "captcha": captcha,
-            "rememberLogin": "true"
+            "rememberLogin": "true",
         }
         result = self._request("POST", path, params)
         return to_login_info(json.dumps(result))
@@ -179,10 +204,7 @@ class MusicApi:
     def captcha(self, ctcode: str, phone: str) -> None:
         """Request SMS verification code."""
         path = "/api/sms/captcha/sent"
-        params = {
-            "cellphone": phone,
-            "ctcode": ctcode
-        }
+        params = {"cellphone": phone, "ctcode": ctcode}
         self._request("POST", path, params)
 
     def login_qr_create(self) -> Tuple[str, str]:
@@ -226,17 +248,15 @@ class MusicApi:
         result = self._request("POST", path, params)
         return to_song_id_list(json.dumps(result))
 
-    def user_song_list(self, uid: int, offset: int = 0, limit: int = 30) -> List[SongList]:
+    def user_song_list(
+        self, uid: int, offset: int = 0, limit: int = 30
+    ) -> List[SongList]:
         """Get user's playlists."""
         path = "/api/user/playlist"
-        params = {
-            "uid": str(uid),
-            "offset": str(offset),
-            "limit": str(limit)
-        }
+        params = {"uid": str(uid), "offset": str(offset), "limit": str(limit)}
         result = self._request("POST", path, params)
         song_lists = []
-        
+
         if result and "code" in result and result["code"] == 200:
             # Process each playlist
             for playlist in result.get("playlist", []):
@@ -245,25 +265,29 @@ class MusicApi:
                     "name": playlist.get("name", ""),
                     "coverImgUrl": playlist.get("coverImgUrl", ""),
                     "description": playlist.get("description", ""),
-                    "creator": playlist.get("creator", {})
+                    "creator": playlist.get("creator", {}),
                 }
                 # Get songs
-                songs = to_song_info(json.dumps({"code": 200, "playlist": {"tracks": playlist.get("tracks", [])}}), "playlist")
+                songs = to_song_info(
+                    json.dumps(
+                        {
+                            "code": 200,
+                            "playlist": {"tracks": playlist.get("tracks", [])},
+                        }
+                    ),
+                    "playlist",
+                )
                 song_lists.extend(to_song_list_from_songs(songs, created_song_list))
-        
+
         return song_lists
 
     def album_sublist(self, offset: int = 0, limit: int = 30) -> List[SongList]:
         """Get user's subscribed albums."""
         path = "/api/album/sublist"
-        params = {
-            "total": "true",
-            "offset": str(offset),
-            "limit": str(limit)
-        }
+        params = {"total": "true", "offset": str(offset), "limit": str(limit)}
         result = self._request("POST", path, params)
         song_lists = []
-        
+
         if result and "code" in result and result["code"] == 200:
             # Extract subscribed album data which contains the album metadata
             for album in result.get("data", []):
@@ -275,23 +299,24 @@ class MusicApi:
                     "description": album.get("description", ""),
                     "creator": {
                         "nickname": album.get("artist", {}).get("name", "Unknown")
-                    }
+                    },
                 }
-                
+
                 # Get songs for this album
-                songs_in_album = to_song_info(json.dumps({"code": 200, "songs": [album]}), "album")
+                songs_in_album = to_song_info(
+                    json.dumps({"code": 200, "songs": [album]}), "album"
+                )
                 # Add the album as a song list
-                song_lists.extend(to_song_list_from_songs(songs_in_album, created_song_list))
-        
+                song_lists.extend(
+                    to_song_list_from_songs(songs_in_album, created_song_list)
+                )
+
         return song_lists
 
     def user_cloud_disk(self) -> List[SongInfo]:
         """Get user's cloud disk songs."""
         path = "/api/v1/cloud/get"
-        params = {
-            "offset": "0",
-            "limit": "10000"
-        }
+        params = {"offset": "0", "limit": "10000"}
         result = self._request("POST", path, params)
         return to_song_info(json.dumps(result), "cloud")
 
@@ -303,7 +328,7 @@ class MusicApi:
             "offset": "0",
             "total": "true",
             "limit": "1000",
-            "n": "1000"
+            "n": "1000",
         }
         result = self._request("POST", path, params)
         return to_play_list_detail(result)
@@ -319,14 +344,8 @@ class MusicApi:
     def songs_url(self, ids: List[int], br: str = "320000") -> List[SongUrl]:
         """Get song URLs."""
         path = "https://interface3.music.163.com/api/song/enhance/player/url"
-        params = {
-            "ids": json.dumps(ids),
-            "br": br
-        }
-        result = self._request(
-            "POST", path, params,
-            crypto_type=CryptoApi.EAPI
-        )
+        params = {"ids": json.dumps(ids), "br": br}
+        result = self._request("POST", path, params, crypto_type=CryptoApi.EAPI)
         return [SongUrl(**url) for url in result.get("data", [])]
 
     def recommend_resource(self) -> List[SongList]:
@@ -334,7 +353,7 @@ class MusicApi:
         path = "/api/v1/discovery/recommend/resource"
         result = self._request("POST", path)
         song_lists = []
-        
+
         if result and "code" in result and result["code"] == 200:
             # Process each recommended resource
             for rec in result.get("recommend", []):
@@ -343,12 +362,14 @@ class MusicApi:
                     "name": rec.get("name", ""),
                     "coverImgUrl": rec.get("picUrl", ""),
                     "description": rec.get("copywriter", ""),
-                    "creator": rec.get("creator", {})
+                    "creator": rec.get("creator", {}),
                 }
                 # Get songs
-                songs = to_song_info(json.dumps({"code": 200, "recommend": [rec]}), "recommend")
+                songs = to_song_info(
+                    json.dumps({"code": 200, "recommend": [rec]}), "recommend"
+                )
                 song_lists.extend(to_song_list_from_songs(songs, created_song_list))
-        
+
         return song_lists
 
     def recommend_songs(self) -> List[SongInfo]:
@@ -371,7 +392,7 @@ class MusicApi:
             "alg": "itembased",
             "trackId": str(songid),
             "like": str(like).lower(),
-            "time": "25"
+            "time": "25",
         }
         result = self._request("POST", path, params)
         msg = to_msg(json.dumps(result))
@@ -380,70 +401,84 @@ class MusicApi:
     def fm_trash(self, songid: int) -> bool:
         """Add song to FM trash."""
         path = "/api/radio/trash/add"
-        params = {
-            "alg": "RT",
-            "songId": str(songid),
-            "time": "25"
-        }
+        params = {"alg": "RT", "songId": str(songid), "time": "25"}
         result = self._request("POST", path, params)
         msg = to_msg(json.dumps(result))
         return msg.code == 200
 
-    def search(self, keywords: str, type_: int = 1, offset: int = 0, limit: int = 30) -> str:
+    def search(
+        self, keywords: str, type_: int = 1, offset: int = 0, limit: int = 30
+    ) -> str:
         """Search for music/albums/artists/playlists/etc."""
         path = "/api/search/get"
         params = {
             "s": keywords,
             "type": str(type_),
             "offset": str(offset),
-            "limit": str(limit)
+            "limit": str(limit),
         }
         result = self._request("POST", path, params)
         return json.dumps(result)
 
-    def search_song(self, keywords: str, offset: int = 0, limit: int = 30) -> List[SongInfo]:
+    def search_song(
+        self, keywords: str, offset: int = 0, limit: int = 30
+    ) -> List[SongInfo]:
         """Search for songs.
-        
+
         Args:
             keywords: Search keywords
             offset: Start offset
             limit: Number of results per page
-            
+
         Returns:
             List of matched songs
         """
         result = self.search(keywords, 1, offset, limit)
-        return to_song_info(result, "search")
+        result = json.loads(result)
+        song_list = []
 
-    def search_singer(self, keywords: str, offset: int = 0, limit: int = 30) -> List[SingerInfo]:
+        if result and "code" in result and result["code"] == 200:
+            # Process each song in search results
+            for song in result.get("result", {}).get("songs", []):
+                song_list.append(to_songinfo(json.dumps(song)))
+        return song_list
+
+    def search_singer(
+        self, keywords: str, offset: int = 0, limit: int = 30
+    ) -> List[SingerInfo]:
         """Search for singers.
-        
+
         Args:
-            keywords: Search keywords 
+            keywords: Search keywords
             offset: Start offset
             limit: Number of results per page
-            
+
         Returns:
             List of matched singers
         """
         result = self.search(keywords, 100, offset, limit)
-        return [SingerInfo(**singer) for singer in json.loads(result).get("result", {}).get("artists", [])]
+        return [
+            SingerInfo(**singer)
+            for singer in json.loads(result).get("result", {}).get("artists", [])
+        ]
 
-    def search_album(self, keywords: str, offset: int = 0, limit: int = 30) -> List[SongList]:
+    def search_album(
+        self, keywords: str, offset: int = 0, limit: int = 30
+    ) -> List[SongList]:
         """Search for albums.
-        
+
         Args:
             keywords: Search keywords
-            offset: Start offset 
+            offset: Start offset
             limit: Number of results per page
-            
+
         Returns:
             List of matched albums
         """
         result = self.search(keywords, 10, offset, limit)
         result_data = json.loads(result)
         song_lists = []
-        
+
         if result_data and "code" in result_data and result_data["code"] == 200:
             # Process each album in search results
             for album in result_data.get("result", {}).get("albums", []):
@@ -452,29 +487,35 @@ class MusicApi:
                     "name": album.get("name", ""),
                     "coverImgUrl": album.get("picUrl", ""),
                     "description": album.get("description", ""),
-                    "creator": {"nickname": album.get("artist", {}).get("name", "Unknown")}
+                    "creator": {
+                        "nickname": album.get("artist", {}).get("name", "Unknown")
+                    },
                 }
                 # Get songs
-                songs = to_song_info(json.dumps({"code": 200, "songs": [album]}), "album")
+                songs = to_song_info(
+                    json.dumps({"code": 200, "songs": [album]}), "album"
+                )
                 song_lists.extend(to_song_list_from_songs(songs, created_song_list))
-        
+
         return song_lists
 
-    def search_songlist(self, keywords: str, offset: int = 0, limit: int = 30) -> List[SongList]:
+    def search_songlist(
+        self, keywords: str, offset: int = 0, limit: int = 30
+    ) -> List[SongList]:
         """Search for playlists.
-        
+
         Args:
             keywords: Search keywords
             offset: Start offset
             limit: Number of results per page
-            
+
         Returns:
             List of matched playlists
         """
         result = self.search(keywords, 1000, offset, limit)
         result_data = json.loads(result)
         song_lists = []
-        
+
         if result_data and "code" in result_data and result_data["code"] == 200:
             # Process each playlist in search results
             for playlist in result_data.get("result", {}).get("playlists", []):
@@ -483,23 +524,27 @@ class MusicApi:
                     "name": playlist.get("name", ""),
                     "coverImgUrl": playlist.get("coverImgUrl", ""),
                     "description": playlist.get("description", ""),
-                    "creator": playlist.get("creator", {})
+                    "creator": playlist.get("creator", {}),
                 }
                 # Get songs
-                songs = to_song_info(json.dumps({"code": 200, "playlist": playlist}), "playlist")
+                songs = to_song_info(
+                    json.dumps({"code": 200, "playlist": playlist}), "playlist"
+                )
                 song_lists.extend(to_song_list_from_songs(songs, created_song_list))
-        
+
         return song_lists
 
-    def search_lyrics(self, keywords: str, offset: int = 0, limit: int = 30) -> List[SongInfo]:
+    def search_lyrics(
+        self, keywords: str, offset: int = 0, limit: int = 30
+    ) -> List[SongInfo]:
         """Search for lyrics.
-        
+
         Args:
             keywords: Search keywords
             offset: Start offset
             limit: Number of results per page
-            
-        Returns: 
+
+        Returns:
             List of songs matched by lyrics
         """
         result = self.search(keywords, 1006, offset, limit)
@@ -507,7 +552,7 @@ class MusicApi:
 
     def singer_songs(self, id: int) -> List[SongInfo]:
         """Get singer's hot songs.
-        
+
         Args:
             id: Singer ID
         """
@@ -516,14 +561,10 @@ class MusicApi:
         return to_song_info(json.dumps(result), "singer")
 
     def singer_all_songs(
-        self,
-        id: int,
-        order: str = "hot",
-        offset: int = 0,
-        limit: int = 30
+        self, id: int, order: str = "hot", offset: int = 0, limit: int = 30
     ) -> List[SongInfo]:
         """Get all songs of a singer.
-        
+
         Args:
             id: Singer ID
             order: Sort order ("hot" or "time")
@@ -537,14 +578,16 @@ class MusicApi:
             "work_type": "1",
             "order": order,
             "offset": str(offset),
-            "limit": str(limit)
+            "limit": str(limit),
         }
         result = self._request("POST", path, params, append_csrf=False)
         return to_song_info(json.dumps(result), "singer_songs")
 
-    def new_albums(self, area: str = "ALL", offset: int = 0, limit: int = 30) -> List[SongList]:
+    def new_albums(
+        self, area: str = "ALL", offset: int = 0, limit: int = 30
+    ) -> List[SongList]:
         """Get new albums.
-        
+
         Args:
             area: Area filter ("ALL", "ZH", "EA", "KR", "JP")
             offset: Offset for pagination
@@ -555,11 +598,11 @@ class MusicApi:
             "area": area,
             "offset": str(offset),
             "limit": str(limit),
-            "total": "true"
+            "total": "true",
         }
         result = self._request("POST", path, params)
         song_lists = []
-        
+
         if result and "code" in result and result["code"] == 200:
             # Process each new album
             for album in result.get("albums", []):
@@ -568,17 +611,21 @@ class MusicApi:
                     "name": album.get("name", ""),
                     "coverImgUrl": album.get("picUrl", ""),
                     "description": album.get("description", ""),
-                    "creator": {"nickname": album.get("artist", {}).get("name", "Unknown")}
+                    "creator": {
+                        "nickname": album.get("artist", {}).get("name", "Unknown")
+                    },
                 }
                 # Get songs
-                songs = to_song_info(json.dumps({"code": 200, "songs": [album]}), "album")
+                songs = to_song_info(
+                    json.dumps({"code": 200, "songs": [album]}), "album"
+                )
                 song_lists.extend(to_song_list_from_songs(songs, created_song_list))
-        
+
         return song_lists
 
     def album(self, album_id: int) -> AlbumDetail:
         """Get album details.
-        
+
         Args:
             album_id: Album ID
         """
@@ -588,7 +635,7 @@ class MusicApi:
 
     def songlist_detail_dynamic(self, songlist_id: int) -> PlayListDetailDynamic:
         """Get dynamic details of a playlist.
-        
+
         Args:
             songlist_id: Playlist ID
         """
@@ -599,12 +646,12 @@ class MusicApi:
             subscribed=result.get("subscribed", False),
             shareCount=result.get("shareCount", 0),
             commentCount=result.get("commentCount", 0),
-            playCount=result.get("playCount", 0)
+            playCount=result.get("playCount", 0),
         )
 
     def album_detail_dynamic(self, album_id: int) -> AlbumDetailDynamic:
         """Get dynamic details of an album.
-        
+
         Args:
             album_id: Album ID
         """
@@ -616,18 +663,14 @@ class MusicApi:
             subCount=result.get("subCount", 0),
             liked=result.get("liked", False),
             commentCount=result.get("commentCount", 0),
-            shareCount=result.get("shareCount", 0)
+            shareCount=result.get("shareCount", 0),
         )
 
     def top_song_list(
-        self,
-        cat: str = "全部",
-        order: str = "hot",
-        offset: int = 0,
-        limit: int = 30
+        self, cat: str = "全部", order: str = "hot", offset: int = 0, limit: int = 30
     ) -> List[SongList]:
-        """Get top playlists.
-        
+        """Get top playlists with no track details.
+
         Args:
             cat: Category filter
             order: Sort order ("hot" or "new")
@@ -640,43 +683,24 @@ class MusicApi:
             "order": order,
             "total": "true",
             "offset": str(offset),
-            "limit": str(limit)
+            "limit": str(limit),
         }
         result = self._request("POST", path, params)
         song_lists = []
-        
+
         if result and "code" in result and result["code"] == 200:
             # Process each playlist from result directly
             for playlist in result.get("playlists", []):
-                created_song_list = {
-                    "id": playlist.get("id", 0),
-                    "name": playlist.get("name", ""),
-                    "coverImgUrl": playlist.get("coverImgUrl", ""),
-                    "description": playlist.get("description", ""),
-                    "creator": playlist.get("creator", {})
-                }
                 # Create SongList without song details for now
-                song_lists.append(SongList(
-                    id=created_song_list["id"],
-                    name=created_song_list["name"],
-                    description=created_song_list["description"],
-                    creator=created_song_list["creator"],
-                    coverImgUrl=created_song_list["coverImgUrl"],
-                    playCount=playlist.get("playCount", 0),
-                    trackCount=playlist.get("trackCount", 0),
-                    songs=[]  # Empty list since we don't have track details yet
-                ))
-        
+                song_lists.append(to_playlist(json.dumps(playlist)))
+
         return song_lists
 
     def top_song_list_highquality(
-        self,
-        cat: str = "全部",
-        lasttime: int = 0,
-        limit: int = 30
+        self, cat: str = "全部", lasttime: int = 0, limit: int = 30
     ) -> List[SongList]:
         """Get high quality playlists.
-        
+
         Args:
             cat: Category filter
             lasttime: Last update time for pagination
@@ -687,11 +711,11 @@ class MusicApi:
             "cat": cat,
             "total": "true",
             "lasttime": str(lasttime),
-            "limit": str(limit)
+            "limit": str(limit),
         }
         result = self._request("POST", path, params)
         song_lists = []
-        
+
         if result and "code" in result and result["code"] == 200:
             # Process each high quality playlist
             for playlist in result.get("playlists", []):
@@ -700,12 +724,14 @@ class MusicApi:
                     "name": playlist.get("name", ""),
                     "coverImgUrl": playlist.get("coverImgUrl", ""),
                     "description": playlist.get("description", ""),
-                    "creator": playlist.get("creator", {})  
+                    "creator": playlist.get("creator", {}),
                 }
                 # Get songs
-                songs = to_song_info(json.dumps({"code": 200, "playlist": playlist}), "playlist")
+                songs = to_song_info(
+                    json.dumps({"code": 200, "playlist": playlist}), "playlist"
+                )
                 song_lists.extend(to_song_list_from_songs(songs, created_song_list))
-        
+
         return song_lists
 
     def toplist(self) -> List[TopList]:
@@ -720,14 +746,14 @@ class MusicApi:
                 description=item.get("description", ""),
                 coverImgUrl=item.get("coverImgUrl", ""),
                 updateFrequency=item.get("updateFrequency", ""),
-                tracks=item.get("tracks", [])
+                tracks=item.get("tracks", []),
             )
             toplists.append(toplist)
         return toplists
 
     def top_songs(self, list_id: int) -> PlayListDetail:
         """Get songs in a toplist.
-        
+
         Args:
             list_id: Toplist ID
         """
@@ -735,7 +761,7 @@ class MusicApi:
 
     def song_lyric(self, music_id: int) -> Lyrics:
         """Get song lyrics.
-        
+
         Args:
             music_id: Song ID
         """
@@ -744,17 +770,17 @@ class MusicApi:
             "id": str(music_id),
             "lv": "-1",
             "tv": "-1",
-            "csrf_token": self._csrf_token
+            "csrf_token": self._csrf_token,
         }
         result = self._request("POST", path, params)
         return Lyrics(
             lrc=result.get("lrc", {}).get("lyric", ""),
-            tlyric=result.get("tlyric", {}).get("lyric", "")
+            tlyric=result.get("tlyric", {}).get("lyric", ""),
         )
 
     def song_list_like(self, like: bool, id: int) -> bool:
         """Subscribe/unsubscribe to a playlist.
-        
+
         Args:
             like: True to subscribe, False to unsubscribe
             id: Playlist ID
@@ -767,7 +793,7 @@ class MusicApi:
 
     def album_like(self, like: bool, id: int) -> bool:
         """Subscribe/unsubscribe to an album.
-        
+
         Args:
             like: True to subscribe, False to unsubscribe
             id: Album ID
@@ -780,15 +806,12 @@ class MusicApi:
 
     def homepage(self, client_type: Optional[ClientType] = None) -> str:
         """Get homepage block data.
-        
+
         Args:
             client_type: Client type info
         """
         path = "/api/homepage/block/page"
-        params = {
-            "refresh": "false",
-            "cursor": "null"
-        }
+        params = {"refresh": "false", "cursor": "null"}
         result = self._request("POST", path, params)
         return json.dumps(result)
 
@@ -802,7 +825,7 @@ class MusicApi:
 
     def download_img(self, url: str, path: str, width: int, height: int) -> None:
         """Download an image from network and save to local path.
-        
+
         Args:
             url: Image URL
             path: Local save path (including filename)
@@ -813,13 +836,13 @@ class MusicApi:
             image_url = f"{url}?param={width}y{height}"
             response = self.client.get(image_url)
             response.raise_for_status()
-            
-            with open(path, 'wb') as f:
+
+            with open(path, "wb") as f:
                 f.write(response.content)
 
     def download_song(self, url: str, path: str) -> None:
         """Download a song from network and save to local path.
-        
+
         Args:
             url: Song URL
             path: Local save path (including filename)
@@ -827,37 +850,35 @@ class MusicApi:
         if not os.path.exists(path):
             response = self.client.get(url)
             response.raise_for_status()
-            
-            with open(path, 'wb') as f:
+
+            with open(path, "wb") as f:
                 f.write(response.content)
 
     def user_radio_sublist(self, offset: int = 0, limit: int = 30) -> Dict[str, Any]:
         """Get user's subscribed radio lists.
-        
+
         Args:
             offset: Start offset for pagination
             limit: Number of results per page
-            
+
         Returns:
             Dict containing subscribed radio stations
         """
         path = "/api/djradio/get/subed"
-        params = {
-            "total": "true",
-            "offset": str(offset),
-            "limit": str(limit)
-        }
+        params = {"total": "true", "offset": str(offset), "limit": str(limit)}
         return self._request("POST", path, params)
 
-    def radio_program(self, radio_id: int, offset: int = 0, limit: int = 30, asc: bool = False) -> Dict[str, Any]:
+    def radio_program(
+        self, radio_id: int, offset: int = 0, limit: int = 30, asc: bool = False
+    ) -> Dict[str, Any]:
         """Get program list for a radio station.
-        
+
         Args:
             radio_id: ID of the radio station
             offset: Start offset for pagination
             limit: Number of results per page
             asc: Sort in ascending order if True, descending if False
-            
+
         Returns:
             Dict containing radio programs
         """
@@ -866,30 +887,31 @@ class MusicApi:
             "radioId": str(radio_id),
             "offset": str(offset),
             "limit": str(limit),
-            "asc": str(asc).lower()
+            "asc": str(asc).lower(),
         }
         return self._request("POST", path, params)
 
-    def playmode_intelligence_list(self, song_id: int, sid: Optional[str] = None, play_list_id: Optional[str] = None) -> Dict[str, Any]:
+    def playmode_intelligence_list(
+        self,
+        song_id: int,
+        sid: Optional[str] = None,
+        play_list_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """Get intelligent playlist based on a song (heart mode).
-        
+
         Args:
             song_id: ID of the seed song
             sid: Session ID (optional)
             play_list_id: ID of the playlist (optional)
-            
+
         Returns:
             Dict containing intelligent playlist
         """
         path = "/api/playmode/intelligence/list"
-        params = {
-            "songId": str(song_id),
-            "type": "fromPlayOne"
-        }
+        params = {"songId": str(song_id), "type": "fromPlayOne"}
         if sid:
             params["sid"] = sid
         if play_list_id:
             params["playlistId"] = play_list_id
-            
-        return self._request("POST", path, params)
 
+        return self._request("POST", path, params)

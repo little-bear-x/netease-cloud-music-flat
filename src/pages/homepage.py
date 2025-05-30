@@ -29,13 +29,17 @@ class Homepage(ft.View):
                         icon=ft.Icons.SEARCH,
                         on_click=lambda e: self.page.go("/search"),  # type: ignore
                         expand=True,
+                        style=ft.ButtonStyle(
+                            bgcolor=ft.CupertinoColors.SYSTEM_BACKGROUND.with_opacity(
+                                0.2, ft.CupertinoColors.PRIMARY
+                            ),
+                        ),
                     ),
                     ft.IconButton(
                         ft.CupertinoIcons.ADD,
                     ),
                 ]
             ),
-            bgcolor=ft.Colors.with_opacity(0.04, ft.CupertinoColors.SYSTEM_BACKGROUND),
         )
 
         # 主要内容区域
@@ -59,17 +63,12 @@ class Homepage(ft.View):
             ),
         )
 
-        # print(self.api.search_song("反乌托邦"))  # 打印登录状态
-        # 加载内容
         self.load_content()
 
     def load_content(self):
         """加载主页内容"""
-        # try:
         # 获取推荐歌单
         top_song_list = self.api.top_song_list()
-        print("\n\n\n\n")
-        print(top_song_list)
 
         # 创建内容列表
         content = []
@@ -86,24 +85,27 @@ class Homepage(ft.View):
                         spacing=90,
                         run_spacing=20,
                         controls=[
-                            ft.Container(
-                                width=180,
-                                height=250,
-                                content=ft.Column(
-                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                    controls=[
-                                        ft.Image(
-                                            src=playlist.coverImgUrl,
-                                            width=180,
-                                            height=180,
-                                            fit=ft.ImageFit.COVER,
-                                            border_radius=10,
-                                        ),
-                                        ft.Text(playlist.name),
-                                    ],
-                                ),
+                            ft.Column(
+                                controls=[
+                                    ft.Image(
+                                        src=playlist.coverImgUrl,
+                                        width=180,
+                                        height=180,
+                                        fit=ft.ImageFit.COVER,
+                                        border_radius=10,
+                                    ),
+                                    ft.Text(
+                                        playlist.name,
+                                        no_wrap=False,
+                                        max_lines=2,
+                                    ),
+                                ],
                             )
-                            for playlist in (top_song_list if len(top_song_list) <= 10 else top_song_list[:10])
+                            for playlist in (
+                                top_song_list
+                                if len(top_song_list) <= 8
+                                else top_song_list[:8]
+                            )
                         ],
                     ),
                 ]
@@ -116,14 +118,3 @@ class Homepage(ft.View):
                 spacing=20,
             )
         ]
-
-        # except Exception as e:
-        #     print(f"Error loading content: {e}")
-        #     self.controls = [
-        #         ft.Column(
-        #             controls=[
-        #                 ft.Text(f"加载失败: {str(e)}", color="red"),
-        #                 ft.TextButton("重试", on_click=lambda _: self.load_content()),
-        #             ],
-        #         )
-        #     ]

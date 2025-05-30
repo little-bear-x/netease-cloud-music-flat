@@ -27,26 +27,31 @@ class App:
 
     def route_change(self, e):
         """处理路由变化"""
-        self.page.views.clear()  # 清除所有视图
-
         # 根据当前路由添加相应视图
-        if self.page.route == "/":
-            self.page_views.append("/")
+        self.troute = ft.TemplateRoute(self.page.route)
+        if self.troute.match("/"):
+            self.page.views.clear()
             self.page.views.append(homepage.Homepage(self.api))
-        elif self.page.route == "/search":
-            self.page_views.append("/search")
+        elif self.troute.match("/search"):
             self.page.views.append(search.SearchPage())
+        elif self.troute.match("/search/:value"):
+            print(f"Search value: {self.troute.value}")
+            self.page.views.append(search.SearchPage(self.troute.value))
+        elif self.troute.match("/search_result/:query"):
+            print(f"Search query: {self.troute.query}")
+            self.page.views.append(search.SearchResultPage(self.troute.query, api=self.api))
         else:
             # 处理未知路由，重定向到首页
+            print("Unknown route, redirecting to home")
             self.page.go("/")
 
         self.page.update()
 
     def view_pop(self, e):
-        """处理视图弹出(如浏览器后退按钮)"""
-        self.page_views.pop()  # 移除当前视图
-        top_view = self.page_views[-1]  # 获取上一个视图
-        self.page.go(top_view)  # 导航到上一个视图的路由
+        """处理视图弹出事件"""
+        self.page.views.pop()
+        top_view = self.page.views[-1]
+        self.page.go(top_view.route)
 
 
 ft.app(App)
