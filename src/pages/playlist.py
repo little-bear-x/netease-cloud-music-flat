@@ -18,9 +18,9 @@ class PlaylistPage(ft.View):
             title=ft.Text(f"正在加载 {playlist_id}"),
         )
 
-        self.load_playlist()
+        self.load_view()
 
-    def load_playlist(self) -> None:
+    def load_view(self) -> None:
         """加载歌单"""
         playlist = self.api.playlist_detail(self.playlist_id)
         self.appbar = ft.AppBar(
@@ -40,8 +40,7 @@ class PlaylistPage(ft.View):
                         color=ft.Colors.BLACK54,
                     ),
                     trailing=ft.Icon(ft.Icons.PLAY_ARROW),
-                    # TODO: 添加点击播放功能
-                    # on_click=lambda e, s=song: self.play_song(s),
+                    on_click=lambda e, song=song: self.page.go(f"/player/{song.id}"),  # type: ignore
                 )
                 for song in playlist.tracks
             ],

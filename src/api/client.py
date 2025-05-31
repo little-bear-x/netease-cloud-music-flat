@@ -94,9 +94,10 @@ class MusicApi:
         crypto_type: CryptoApi = CryptoApi.API,
         ua_type: str = "",
         append_csrf: bool = True,
+        basic_url: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Make an HTTP request to the API."""
-        url = build_url(BASE_URL, path)
+        url = build_url(basic_url if basic_url else BASE_URL, path)
         if append_csrf and self._csrf_token:
             if "?" in url:
                 url = f"{url}&csrf_token={self._csrf_token}"
@@ -333,20 +334,34 @@ class MusicApi:
         result = self._request("POST", path, params)
         return to_play_list_detail(result.get("playlist", {}))
 
-    def songs_detail(self, ids: List[int]) -> List[SongInfo]:
+    def song_detail(self, id: int) -> SongInfo:
         """Get details for multiple songs."""
         path = "/api/v3/song/detail"
-        c = [{"id": str(i)} for i in ids]
+        c = [{"id": str(id)}]
         params = {"c": json.dumps(c)}
         result = self._request("POST", path, params)
-        return to_song_info(json.dumps(result), "songs")
+        return to_songinfo(json.dumps(result.get("songs", [])[0]))
 
-    def songs_url(self, ids: List[int], br: str = "320000") -> List[SongUrl]:
+    def songs_url(self, id: int, br: str = "320000") -> SongUrl:
         """Get song URLs."""
-        path = "https://interface3.music.163.com/api/song/enhance/player/url"
-        params = {"ids": json.dumps(ids), "br": br}
-        result = self._request("POST", path, params, crypto_type=CryptoApi.EAPI)
-        return [SongUrl(**url) for url in result.get("data", [])]
+        path = "/api/song/enhance/player/url"
+        params = {"ids": json.dumps([id]), "br": br}
+        result = self._request(
+            "POST",
+            path,
+            params,
+            # crypto_type=CryptoApi.EAPI,
+            basic_url="https://interface3.music.163.com",
+        )
+        result = result.get("data", [])[0]
+        return SongUrl(
+            id=result.get("id"),
+            url=result.get("url"),
+            br=result.get("br"),
+            size=result.get("size"),
+            md5=result.get("md5"),
+            type=result.get("type"),
+        )
 
     def recommend_resource(self) -> List[SongList]:
         """Get daily recommended playlists."""

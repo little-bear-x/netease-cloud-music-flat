@@ -92,9 +92,15 @@ def to_songinfo(json_str: str) -> SongInfo:
         id=song.get("id", 0),
         name=song.get("name", ""),
         album=AlbumInfo(
-            id=song.get("album", {}).get("id", 0),
-            name=song.get("album", {}).get("name", ""),
-            picUrl=song.get("album", {}).get("picUrl", ""),
+            id=(song.get("album", {}) if song.get("album") else song.get("al", {})).get(
+                "id", 0
+            ),
+            name=(
+                song.get("album", {}) if song.get("album") else song.get("al", {})
+            ).get("name", ""),
+            picUrl=(
+                song.get("album", {}) if song.get("album") else song.get("al", {})
+            ).get("picUrl", ""),
         ),
         duration=song.get("duration", 0),
         pic_url=song.get("album", {}).get("picUrl", ""),
@@ -104,7 +110,9 @@ def to_songinfo(json_str: str) -> SongInfo:
                 name=artist.get("name", ""),
                 picUrl=artist.get("picUrl", ""),
             )
-            for artist in song.get("artists", [])
+            for artist in (
+                song.get("artists", []) if song.get("artists") else song.get("ar", [])
+            )
         ],
     )
 

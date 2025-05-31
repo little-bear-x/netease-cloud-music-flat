@@ -21,7 +21,9 @@ class SearchPage(ft.View):
             border=ft.InputBorder.UNDERLINE,
             value=default_query,
         )
-
+        self.load_view()
+    
+    def load_view(self) -> None:
         self.appbar = ft.AppBar(
             title=ft.Row(
                 [
@@ -79,9 +81,9 @@ class SearchResultPage(ft.View):
         ]
 
         # Load search results
-        self.load_search_results()
+        self.load_view()
 
-    def load_search_results(self):
+    def load_view(self):
         """加载搜索结果"""
         if not self.api:
             self.controls = [ft.Text("API未初始化", size=20, color="red")]
@@ -110,8 +112,7 @@ class SearchResultPage(ft.View):
                             color=ft.Colors.BLACK54,
                         ),
                         trailing=ft.Icon(ft.Icons.PLAY_ARROW),
-                        # TODO: 添加点击播放功能
-                        # on_click=lambda e, s=song: self.play_song(s),
+                        on_click=lambda e, song=song: self.page.go(f"/player/{song.id}"),  # type: ignore
                     )
                     for song in songs
                 ],

@@ -7,14 +7,15 @@ import api
 class Homepage(ft.View):
     """主页"""
 
-    def __init__(self, api: api.MusicApi):
+    def __init__(self, api: api.MusicApi, page: ft.Page):
         """
         初始化主页
         :param api: 网易云API实例
         """
         super().__init__()
 
-        self.api = api  # 保存API实例
+        self.api = api
+        self.page = page
         self.route = "/"
         self.adaptive = True
         self.padding = ft.padding.all(20)
@@ -63,17 +64,15 @@ class Homepage(ft.View):
             ),
         )
 
-        self.load_content()
+        self.load_view()
 
-    def load_content(self):
+    def load_view(self):
         """加载主页内容"""
         # 获取推荐歌单
         top_song_list = self.api.top_song_list()
 
         # 创建内容列表
         content = []
-
-        button = ft.TextButton()
 
         # 添加推荐歌单
         if top_song_list:
@@ -105,7 +104,7 @@ class Homepage(ft.View):
                                     ],
                                 ),
                                 expand=True,
-                                on_click=lambda e, p=playlist: self.to_songlist(p.id),
+                                on_click=lambda e, playlist=playlist: self.to_songlist(playlist.id),
                             )
                             for playlist in (
                                 top_song_list
@@ -129,5 +128,6 @@ class Homepage(ft.View):
         """跳转到歌单页面"""
         # print(f"跳转到歌单页面: {songlist_id}")
         # print(self.api.playlist_detail(songlist_id))  # 调试输出
+        print(f"跳转到歌单页面: {songlist_id}")
         self.page.go(f"/playlist/{songlist_id}")  # type: ignore
 

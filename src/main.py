@@ -6,6 +6,7 @@ import flet as ft
 import pages.homepage as homepage
 import pages.search as search
 import pages.playlist as playlist
+import pages.player as player
 import api
 
 
@@ -28,11 +29,16 @@ class App:
 
     def route_change(self, e):
         """处理路由变化"""
+        print(e)
+        # 删除最后一项重复route
+        if self.page.route == self.page.views[-1].route:
+            print(f"Removing duplicate route: {self.page.route}")
+            self.page.views.pop()
         # 根据当前路由添加相应视图
         self.troute = ft.TemplateRoute(self.page.route)
         if self.troute.match("/"):
             self.page.views.clear()
-            self.page.views.append(homepage.Homepage(self.api))
+            self.page.views.append(homepage.Homepage(self.api, self.page))
         elif self.troute.match("/search"):
             self.page.views.append(search.SearchPage())
         elif self.troute.match("/search/:value"):
@@ -45,6 +51,9 @@ class App:
             playlist_id = int(self.troute.id)
             print(f"Loading playlist with ID: {playlist_id}")
             self.page.views.append(playlist.PlaylistPage(playlist_id, self.api))
+        elif self.troute.match("/player/:id"):
+            song_id = int(self.troute.id)
+            self.page.views.append(player.PlayerPage(song_id, self.api))
         else:
             # 处理未知路由，重定向到首页
             print("Unknown route, redirecting to home")
@@ -57,6 +66,5 @@ class App:
         self.page.views.pop()
         top_view = self.page.views[-1]
         self.page.go(top_view.route)
-
 
 ft.app(App)
