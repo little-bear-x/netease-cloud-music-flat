@@ -48,10 +48,10 @@ class App:
             self.globals_var.page.views.append(search.SearchPage(self.globals_var))
         elif self.troute.match("/search/:value"):
             print(f"Search value: {self.troute.value}") # type: ignore
-            self.page.views.append(search.SearchPage(self.globals_var, self.troute.value)) # type: ignore
+            self.globals_var.page.views.append(search.SearchPage(self.globals_var, self.troute.value)) # type: ignore
         elif self.troute.match("/search_result/:query"):
             print(f"Search query: {self.troute.query}") # type: ignore
-            self.page.views.append(search.SearchResultPage(self.troute.query, self.globals_var)) # type: ignore
+            self.globals_var.page.views.append(search.SearchResultPage(self.troute.query, self.globals_var)) # type: ignore
         elif self.troute.match("/playlist/:id"):
             playlist_id = int(self.troute.id) # type: ignore
             print(f"Loading playlist with ID: {playlist_id}")
@@ -71,5 +71,7 @@ class App:
         self.globals_var.page.views.pop()
         top_view = self.globals_var.page.views[-1]
         self.globals_var.page.go(top_view.route) # type: ignore
+        self.globals_var.music_playing.position_callbacks = []
+        self.globals_var.music_playing.state_callbacks = []
 
 ft.app(App)

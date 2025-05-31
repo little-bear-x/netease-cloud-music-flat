@@ -16,7 +16,7 @@ class MusicPlaying:
         self.current_time: int = 0
         
         # 创建音频播放器
-        self.audio_player = ft.Audio(
+        self.audio_player = fa.Audio(
             volume=1,
             on_loaded=self.on_audio_loaded,
             on_position_changed=self.update_position,
@@ -74,11 +74,11 @@ class MusicPlaying:
 
     def set_song(self, song_id: int, song_name: str, song_src: str, song_pic: str):
         """设置当前播放的歌曲信息"""
+        self.audio_player.release()  # 释放之前的音频资源
         self.song_id = song_id
         self.song_name = song_name
         self.song_pic = song_pic
         self.audio_player.src_base64 = song_src
-        self.audio_player.pause()  # 确保音频暂停状态
         self.duration = None  # 等待加载完成后更新
 
     def play(self):

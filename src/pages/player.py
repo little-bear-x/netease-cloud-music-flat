@@ -24,27 +24,21 @@ class PlayerPage(ft.View):
         self.scroll = ft.ScrollMode.AUTO
         self.padding = ft.padding.all(20)
 
-        # 播放状态
-        self.playing_state = True
-
         self.appbar = ft.AppBar(
             title=ft.Text(f"正在加载 {song_id}"),
-        )        # 加载数据和视图
+        )  # 加载数据和视图
         self.load_song_data()
         self.load_view()
-        
+
         # 注册回调
         self.music_playing.add_position_callback(self.update_position)
         self.music_playing.add_state_callback(self.update_state)
-    
-    def __del__(self):
-        """清理资源"""
-        self.music_playing.remove_position_callback(self.update_position)
-        self.music_playing.remove_state_callback(self.update_state)
-    
+
     def load_song_data(self) -> None:
         """加载歌曲数据"""
         self.song_info = self.api.song_detail(self.song_id)
+        if self.song_id == self.music_playing.song_id:
+            return
         self.song_url = self.api.songs_url(self.song_id)
         self.song_data = (
             requests.get(self.song_url.url).content if self.song_url else None
@@ -57,17 +51,14 @@ class PlayerPage(ft.View):
                 base64.b64encode(self.song_data).decode("utf-8"),
                 self.song_info.album.picUrl,
             )
-    
+
     def load_view(self) -> None:
         """加载视图"""
-        if not self.song_info or not self.song_url or not self.song_data:
+        if not self.song_info:
             self.controls = [ft.Text("歌曲信息或URL加载失败", size=20, color="red")]
             return
 
-        self.appbar = ft.AppBar(
-            title=ft.Text(f"{self.song_info.name}", no_wrap=True),
-            center_title=True,
-        )
+        self.appbar = ft.AppBar()
 
         # 进度条
         self.progress_bar = ft.Slider(
@@ -83,7 +74,11 @@ class PlayerPage(ft.View):
 
         # 播放控制按钮
         self.playing_button = ft.IconButton(
-            icon=ft.Icons.PLAY_ARROW_ROUNDED,
+            icon=(
+                ft.Icons.PLAY_ARROW_ROUNDED
+                if not self.music_playing.playing_state
+                else ft.Icons.PAUSE_ROUNDED
+            ),
             icon_size=40,
             icon_color=ft.Colors.WHITE,
             data="play",  # 用于跟踪按钮状态
@@ -174,8 +169,6 @@ class PlayerPage(ft.View):
                         ),
                         # 控制按钮
                         control_buttons,
-                        # 歌曲
-                        self.music_playing.audio_player,
                     ],
                     alignment=ft.MainAxisAlignment.START,
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -195,7 +188,9 @@ class PlayerPage(ft.View):
         duration = self.music_playing.duration
         if duration > 0:  # type: ignore
             # 更新进度条
-            self.progress_bar.value = (position / duration) * 100  # type: ignore
+            self.progress_bar.value = (position / duration) * 100 \
+                if (position / duration) * 100 <= self.progress_bar.max \
+                else self.progress_bar.max   # type: ignore
             # 更新时间显示
             self.time_label.value = f"{self.format_time(position/1000)} / {self.format_time(duration/1000)}"  # type: ignore
             self.update()
@@ -210,7 +205,6 @@ class PlayerPage(ft.View):
     def update_state(self, state):
         """更新播放状态"""
         if self.playing_button:
-            self.playing_state = state
             if state:
                 self.playing_button.icon = ft.Icons.PAUSE_ROUNDED
             else:
@@ -219,7 +213,7 @@ class PlayerPage(ft.View):
 
     def toggle_play(self, e):
         """切换播放/暂停状态"""
-        if self.playing_state:
+        if self.music_playing.playing_state:
             self.music_playing.pause()
         else:
             self.music_playing.resume()
