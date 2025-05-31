@@ -1,17 +1,19 @@
 import flet as ft
 from api import MusicApi
+import models
 
 
 class SearchPage(ft.View):
     """搜索页面"""
 
-    def __init__(self, default_query: str = ""):
+    def __init__(self, globals_var: models.Globals, default_query: str = ""):
         super().__init__()
 
         self.route = f"/search/{default_query}"
         self.adaptive = True
         self.padding = ft.padding.all(20)
         self.can_pop = True
+        self.page = globals_var.page
 
         self.search_field = ft.TextField(
             hint_text="搜索",
@@ -22,7 +24,7 @@ class SearchPage(ft.View):
             value=default_query,
         )
         self.load_view()
-    
+
     def load_view(self) -> None:
         self.appbar = ft.AppBar(
             title=ft.Row(
@@ -46,10 +48,11 @@ class SearchPage(ft.View):
 class SearchResultPage(ft.View):
     """搜索结果展示页面"""
 
-    def __init__(self, search_query: str, api: MusicApi):
+    def __init__(self, search_query: str, globals_var: models.Globals):
         super().__init__()
 
-        self.api = api
+        self.api = globals_var.music_api
+        self.page = globals_var.page
         self.search_query = search_query
         self.route = f"/search_result/{search_query}"
         self.adaptive = True
@@ -68,6 +71,7 @@ class SearchResultPage(ft.View):
                             bgcolor=ft.CupertinoColors.SYSTEM_BACKGROUND.with_opacity(
                                 0.2, ft.CupertinoColors.PRIMARY
                             ),
+                            alignment=ft.alignment.center_left,
                         ),
                     )
                 ],

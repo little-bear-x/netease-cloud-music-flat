@@ -8,6 +8,8 @@ import pages.search as search
 import pages.playlist as playlist
 import pages.player as player
 import api
+import models
+
 
 
 class App:
@@ -17,54 +19,57 @@ class App:
     page_title = "主页"
     # 当前全部页面
     page_views = []
-    # 网易云api
-    api = api.MusicApi()
 
     def __init__(self, page: ft.Page):
-        self.page = page
-        self.page.title = "网易云音乐"
-        self.page.on_route_change = self.route_change
-        self.page.on_view_pop = self.view_pop
-        self.page.go("/")
+        # 全局变量
+        self.globals_var = models.Globals(page)
+
+        self.globals_var.page.title = "网易云音乐"
+        self.globals_var.page.on_route_change = self.route_change
+        self.globals_var.page.on_view_pop = self.view_pop
+
+        # 将 audio_player 组件添加到页面中
+        self.globals_var.page.add(self.globals_var.music_playing.audio_player)
+
+        self.globals_var.page.go("/")
 
     def route_change(self, e):
         """处理路由变化"""
         print(e)
         # 删除最后一项重复route
-        if self.page.route == self.page.views[-1].route:
-            print(f"Removing duplicate route: {self.page.route}")
-            self.page.views.pop()
+        if self.globals_var.page.route == self.globals_var.page.views[-1].route:
+            print(f"Removing duplicate route: {self.globals_var.page.route}")
+            self.globals_var.page.views.pop()
         # 根据当前路由添加相应视图
-        self.troute = ft.TemplateRoute(self.page.route)
+        self.troute = ft.TemplateRoute(self.globals_var.page.route)
         if self.troute.match("/"):
-            self.page.views.clear()
-            self.page.views.append(homepage.Homepage(self.api, self.page))
+            self.globals_var.page.views.append(homepage.Homepage(self.globals_var))
         elif self.troute.match("/search"):
-            self.page.views.append(search.SearchPage())
+            self.globals_var.page.views.append(search.SearchPage(self.globals_var))
         elif self.troute.match("/search/:value"):
-            print(f"Search value: {self.troute.value}")
-            self.page.views.append(search.SearchPage(self.troute.value))
+            print(f"Search value: {self.troute.value}") # type: ignore
+            self.page.views.append(search.SearchPage(self.globals_var, self.troute.value)) # type: ignore
         elif self.troute.match("/search_result/:query"):
-            print(f"Search query: {self.troute.query}")
-            self.page.views.append(search.SearchResultPage(self.troute.query, api=self.api))
+            print(f"Search query: {self.troute.query}") # type: ignore
+            self.page.views.append(search.SearchResultPage(self.troute.query, self.globals_var)) # type: ignore
         elif self.troute.match("/playlist/:id"):
-            playlist_id = int(self.troute.id)
+            playlist_id = int(self.troute.id) # type: ignore
             print(f"Loading playlist with ID: {playlist_id}")
-            self.page.views.append(playlist.PlaylistPage(playlist_id, self.api))
+            self.globals_var.page.views.append(playlist.PlaylistPage(playlist_id, self.globals_var))
         elif self.troute.match("/player/:id"):
-            song_id = int(self.troute.id)
-            self.page.views.append(player.PlayerPage(song_id, self.api))
+            song_id = int(self.troute.id) # type: ignore
+            self.globals_var.page.views.append(player.PlayerPage(song_id, self.globals_var))
         else:
             # 处理未知路由，重定向到首页
             print("Unknown route, redirecting to home")
-            self.page.go("/")
+            self.globals_var.page.go("/")
 
-        self.page.update()
+        self.globals_var.page.update()
 
     def view_pop(self, e):
         """处理视图弹出事件"""
-        self.page.views.pop()
-        top_view = self.page.views[-1]
-        self.page.go(top_view.route)
+        self.globals_var.page.views.pop()
+        top_view = self.globals_var.page.views[-1]
+        self.globals_var.page.go(top_view.route) # type: ignore
 
 ft.app(App)

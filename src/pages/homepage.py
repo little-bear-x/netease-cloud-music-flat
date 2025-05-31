@@ -2,27 +2,30 @@
 
 import flet as ft
 import api
+import models
 
 
 class Homepage(ft.View):
     """主页"""
 
-    def __init__(self, api: api.MusicApi, page: ft.Page):
+    def __init__(self, globals_var: models.Globals):
         """
         初始化主页
         :param api: 网易云API实例
         """
         super().__init__()
 
-        self.api = api
-        self.page = page
+        self.api = globals_var.music_api
+        self.page = globals_var.page
         self.route = "/"
         self.adaptive = True
         self.padding = ft.padding.all(20)
         self.scroll = ft.ScrollMode.AUTO
+        self.can_pop = False
 
         # 搜索栏
         self.appbar = ft.AppBar(
+            automatically_imply_leading=False,  # 禁用自动显示返回按钮
             title=ft.Row(
                 controls=[
                     ft.TextButton(
@@ -34,6 +37,7 @@ class Homepage(ft.View):
                             bgcolor=ft.CupertinoColors.SYSTEM_BACKGROUND.with_opacity(
                                 0.2, ft.CupertinoColors.PRIMARY
                             ),
+                            alignment=ft.alignment.center_left,
                         ),
                     ),
                     ft.IconButton(
@@ -104,7 +108,9 @@ class Homepage(ft.View):
                                     ],
                                 ),
                                 expand=True,
-                                on_click=lambda e, playlist=playlist: self.to_songlist(playlist.id),
+                                on_click=lambda e, playlist=playlist: self.to_songlist(
+                                    playlist.id
+                                ),
                             )
                             for playlist in (
                                 top_song_list
@@ -123,11 +129,10 @@ class Homepage(ft.View):
                 spacing=20,
             )
         ]
-    
+
     def to_songlist(self, songlist_id: int):
         """跳转到歌单页面"""
         # print(f"跳转到歌单页面: {songlist_id}")
         # print(self.api.playlist_detail(songlist_id))  # 调试输出
         print(f"跳转到歌单页面: {songlist_id}")
         self.page.go(f"/playlist/{songlist_id}")  # type: ignore
-

@@ -1,14 +1,16 @@
 import flet as ft
 from api import MusicApi
+import models
 
 
 class PlaylistPage(ft.View):
-    def __init__(self, playlist_id: int, api: MusicApi):
+    def __init__(self, playlist_id: int, globals_var: models.Globals):
         super().__init__()
 
         self.route = f"/playlist/{playlist_id}"
         self.playlist_id = playlist_id
-        self.api = MusicApi()
+        self.api = globals_var.music_api
+        self.page = globals_var.page
 
         self.adaptive = True
         self.padding = ft.padding.all(20)
