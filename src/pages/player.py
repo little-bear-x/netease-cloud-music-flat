@@ -22,14 +22,15 @@ class PlayerPage(ft.View):
 
         self.appbar = ft.AppBar(
             title=ft.Text(f"正在加载"),
-        )  
-        
+        )
+
         # 加载数据和视图
         self.load_view()
 
         # 注册回调
         self.music_playing.add_position_callback(self.update_position)
         self.music_playing.add_state_callback(self.update_state)
+
 
     def load_view(self) -> None:
         """加载视图"""
@@ -154,6 +155,7 @@ class PlayerPage(ft.View):
             )
         ]
 
+
     def format_time(self, seconds: float) -> str:
         """格式化时间显示"""
         minutes = int(seconds // 60)
@@ -163,13 +165,14 @@ class PlayerPage(ft.View):
     def update_position(self, position):
         """更新进度条和时间显示"""
         duration = self.music_playing.duration
+
         if duration > 0:  # type: ignore
             # 更新进度条
             self.progress_bar.value = (position / duration) * 100 \
                 if (position / duration) * 100 <= self.progress_bar.max \
                 else self.progress_bar.max   # type: ignore
             # 更新时间显示
-            self.time_label.value = f"{self.format_time(position/1000)} / {self.format_time(duration/1000)}"  # type: ignore
+            self.time_label.value = f"{self.format_time(position/1000)} / {self.format_time(duration/1000)}"
             self.update()
 
     def seek_position(self, e):
@@ -199,10 +202,10 @@ class PlayerPage(ft.View):
         """播放上一首"""
         if self.globals.music_playing_index > 0:
             self.globals.music_playing_index -= 1
-            self.page.go("/player/reload")  # type: ignore
+            self.globals.refresh_music_playing()
 
     def next_track(self, e):
         """播放下一首"""
         if self.globals.music_playing_index < len(self.globals.music_playing_list) - 1:
             self.globals.music_playing_index += 1
-            self.page.go("/player/reload")  # type: ignore
+            self.globals.refresh_music_playing()

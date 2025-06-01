@@ -4,37 +4,39 @@ from flet import OptionalEventCallable
 import flet_audio as fa
 import requests
 import base64
+from player import MusicPlayerThread
 
 
 class MusicPlaying:
     """全局音乐播放控制器"""
 
-    def __init__(self):
+    def __init__(self, page=None):
         self.song_id: int | None = None
         self.song_name: str | None = None
         self.song_pic: str | None = None
-        self.playing_state: bool = False
-        self.duration: int | None = None
-        self.current_time: int = 0
         self.artists: list[api.SingerInfo] = []
-
-        # 创建音频播放器
-        self.audio_player = fa.Audio(
-            volume=1,
-            on_loaded=self.on_audio_loaded,
-            on_position_changed=self.update_position,
-            on_state_changed=self.update_state,
-        )
+        
+        # 创建音乐播放线程
+        self._player = MusicPlayerThread(page=page)
+        self._player.add_position_callback(self.update_position)
+        self._player.add_state_callback(self.update_state)
+        self._player.start()
 
         # 注册回调函数列表
         self.position_callbacks: list[OptionalEventCallable] = []
         self.state_callbacks: list[OptionalEventCallable] = []
 
-    def on_audio_loaded(self, e):
-        """音频加载完成时的回调并开始播放"""
-        print(f"Audio loaded: {self.song_name}")
-        self.duration = self.audio_player.get_duration()
-        self.play()
+    @property
+    def playing_state(self) -> bool:
+        return self._player.playing_state
+
+    @property
+    def duration(self) -> int | None:
+        return self._player.duration
+
+    @property
+    def current_time(self) -> int:
+        return self._player.current_position
 
     def add_position_callback(self, callback: OptionalEventCallable):
         """添加位置更新回调函数"""
@@ -56,24 +58,21 @@ class MusicPlaying:
         if callback in self.state_callbacks:
             self.state_callbacks.remove(callback)
 
-    def update_position(self, e):
+    def update_position(self, position):
         """更新播放位置"""
-        self.current_time = int(e.data)
         # 通知所有注册的回调
         for callback in self.position_callbacks:
             if callback is None:
                 continue
-            callback(self.current_time)
+            callback(position)
 
-    def update_state(self, e):
+    def update_state(self, state):
         """更新播放状态"""
-        state = e.data
-        self.playing_state = state == "playing"
         # 通知所有注册的回调
         for callback in self.state_callbacks:
             if callback is None:
                 continue
-            callback(self.playing_state)
+            callback(state)
 
     def set_song(
         self,
@@ -85,36 +84,38 @@ class MusicPlaying:
     ):
         """设置当前播放的歌曲信息"""
         print(f"Setting song: {song_name} (ID: {song_id})")
-        self.audio_player.release()  # 释放之前的音频资源
         self.song_id = song_id
         self.song_name = song_name
         self.song_pic = song_pic
-        self.audio_player.src_base64 = song_src
         self.artists = song_artists
+        self._player.set_song({
+            "id": song_id,
+            "src": song_src
+        })
 
     def play(self):
         """播放音乐"""
         if self.song_id is not None:
-            self.audio_player.play()
+            self._player.play()
 
     def pause(self):
         """暂停音乐"""
         if self.song_id is not None:
-            self.audio_player.pause()
+            self._player.pause()
 
     def resume(self):
         """恢复播放"""
         if self.song_id is not None:
-            self.audio_player.resume()
+            self._player.resume()
 
     def seek(self, position: int):
         """跳转到指定位置"""
         if self.song_id is not None:
-            self.audio_player.seek(position)
+            self._player.seek(position)
 
     def dispose(self):
         """清理资源"""
-        self.audio_player.release()
+        self._player.stop()
         self.position_callbacks.clear()
         self.state_callbacks.clear()
 
@@ -133,8 +134,7 @@ class Globals:
     def __init__(self, p: ft.Page):
         self.music_api = api.MusicApi()
         self.page = p
-        self.music_playing = MusicPlaying()
-        self.page.add(self.music_playing.audio_player)
+        self.music_playing = MusicPlaying(page=p)
 
     def refresh_music_playing(self):
         """刷新当前播放的歌曲"""
@@ -143,7 +143,8 @@ class Globals:
         song_info = self.music_api.song_detail(
             self.music_playing_list[self.music_playing_index].id
         )
-        song_url = self.music_api.songs_url(self.music_playing_list[self.music_playing_index].id)
+        song_url = self.music_api.songs_url(
+            self.music_playing_list[self.music_playing_index].id)
         print(song_url)
         song_data = (
             requests.get(song_url.url).content if song_url else None

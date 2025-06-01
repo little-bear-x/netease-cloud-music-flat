@@ -30,7 +30,8 @@ class Homepage(ft.View):
                     ft.TextButton(
                         text="搜索",
                         icon=ft.Icons.SEARCH,
-                        on_click=lambda e: self.page.go("/search"),  # type: ignore
+                        on_click=lambda e: self.page.go(    # type: ignore
+                            "/search"),
                         expand=True,
                         style=ft.ButtonStyle(
                             bgcolor=ft.CupertinoColors.SYSTEM_BACKGROUND.with_opacity(
@@ -41,7 +42,8 @@ class Homepage(ft.View):
                     ),
                     ft.IconButton(
                         ft.Icons.MUSIC_NOTE_SHARP,
-                        on_click=lambda e: self.page.open(MusicAlert(globals_var)),  # type: ignore
+                        on_click=lambda e: self.page.open(    # type: ignore
+                            MusicAlert(globals_var)),
                     ),
                 ]
             ),
@@ -64,7 +66,8 @@ class Homepage(ft.View):
                 ft.NavigationBarDestination(icon=ft.Icons.PERSON, label="我的"),
             ],
             border=ft.Border(
-                top=ft.BorderSide(color=ft.CupertinoColors.SYSTEM_GREY2, width=0)
+                top=ft.BorderSide(
+                    color=ft.CupertinoColors.SYSTEM_GREY2, width=0)
             ),
         )
 
@@ -145,14 +148,8 @@ class MusicAlert(ft.AlertDialog):
         super().__init__()
         self.page = globals_var.page
         self.music_playing = globals_var.music_playing
+        self.globals = globals_var
 
-        self.load_view()
-
-        self.music_playing.add_position_callback(self.update_position)
-        self.music_playing.add_state_callback(self.update_state)
-
-    def load_view(self):
-        """加载音乐播放提示对话框"""
         # 进度条
         self.progress_bar = ft.Slider(
             value=0,
@@ -177,6 +174,17 @@ class MusicAlert(ft.AlertDialog):
             data="play",  # 用于跟踪按钮状态
             on_click=self.toggle_play,
         )
+
+        # 注册回调
+        self.music_playing.add_position_callback(self.update_position)
+        self.music_playing.add_state_callback(self.update_state)
+
+        self.load_view()
+
+
+    def load_view(self):
+        """加载音乐播放提示对话框"""
+        
         if not self.music_playing.song_id:
             self.title = ft.Text(
                 self.music_playing.song_name or "正在播放的音乐将会显示在这里♥️"
@@ -255,7 +263,7 @@ class MusicAlert(ft.AlertDialog):
             self.actions = [
                 ft.TextButton(
                     "歌曲详情",
-                    on_click=lambda e: self.show_detial(),
+                    on_click=lambda e: self.show_detail(),
                 ),
                 ft.TextButton(
                     "关闭",
@@ -265,7 +273,7 @@ class MusicAlert(ft.AlertDialog):
         self.open = True
         self.modal = True
 
-    def show_detial(self):
+    def show_detail(self):
         self.page.go(f"/player")  # type: ignore
         self.page.close(self)  # type: ignore
 
@@ -284,7 +292,7 @@ class MusicAlert(ft.AlertDialog):
                 if (position / duration) * 100 <= self.progress_bar.max \
                 else self.progress_bar.max  # type: ignore
             # 更新时间显示
-            self.time_label.value = f"{self.format_time(position/1000)} / {self.format_time(duration/1000)}"  # type: ignore
+            self.time_label.value = f"{self.format_time(position/1000)} / {self.format_time(duration/1000)}"
             self.update()
 
     def seek_position(self, e):
@@ -312,10 +320,14 @@ class MusicAlert(ft.AlertDialog):
 
     def previous_track(self, e):
         """播放上一首"""
-        # TODO: 实现播放列表功能后完善
-        print("Previous track")
+        if self.globals.music_playing_index > 0:
+            self.globals.music_playing_index -= 1
+            self.globals.refresh_music_playing()
+            self.page.close(self)  # type: ignore
 
     def next_track(self, e):
         """播放下一首"""
-        # TODO: 实现播放列表功能后完善
-        print("Next track")
+        if self.globals.music_playing_index < len(self.globals.music_playing_list) - 1:
+            self.globals.music_playing_index += 1
+            self.globals.refresh_music_playing()
+            self.page.close(self)  # type: ignore

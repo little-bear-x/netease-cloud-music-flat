@@ -4,5 +4,15 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"cSpell.words": [
+			"appbar",
+			"Cupertino",
+			"flet",
+			"Netease",
+			"pyproject",
+			"songlist",
+			"troute"
+		]
+	},
 }
