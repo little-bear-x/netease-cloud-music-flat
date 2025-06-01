@@ -256,7 +256,7 @@ class MusicAlert(ft.AlertDialog):
             self.actions = [
                 ft.TextButton(
                     "歌曲详情",
-                    on_click=lambda e: self.show_detial,
+                    on_click=lambda e: self.show_detial(),
                 ),
                 ft.TextButton(
                     "关闭",
