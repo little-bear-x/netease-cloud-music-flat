@@ -53,6 +53,7 @@ class SearchResultPage(ft.View):
 
         self.api = globals_var.music_api
         self.page = globals_var.page
+        self.globals = globals_var
         self.search_query = search_query
         self.route = f"/search_result/{search_query}"
         self.adaptive = True
@@ -95,10 +96,10 @@ class SearchResultPage(ft.View):
 
         try:
             # 获取搜索结果
-            songs = self.api.search_song(self.search_query)
+            self.songs = self.api.search_song(self.search_query)
 
             # 如果没有结果
-            if not songs:
+            if not self.songs:
                 self.controls = [ft.Text("没有找到相关歌曲", size=20)]
                 return
 
@@ -116,9 +117,9 @@ class SearchResultPage(ft.View):
                             color=ft.Colors.BLACK54,
                         ),
                         trailing=ft.Icon(ft.Icons.PLAY_ARROW),
-                        on_click=lambda e, song=song: self.page.go(f"/player/{song.id}"),  # type: ignore
+                        on_click=lambda e, song=song, index=index: self.play_music(index),
                     )
-                    for song in songs
+                    for (index, song) in enumerate(self.songs)
                 ],
             )
 
@@ -135,3 +136,9 @@ class SearchResultPage(ft.View):
 
         except Exception as e:
             self.controls = [ft.Text(f"搜索失败: {str(e)}", size=20, color="red")]
+    
+    def play_music(self, playlist_index: int):
+        """播放歌曲"""
+        self.globals.music_playing_list = self.songs
+        self.globals.music_playing_index = playlist_index
+        self.page.go(f"/player")  # type: ignore

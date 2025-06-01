@@ -1,7 +1,6 @@
 """主页相关函数"""
 
 import flet as ft
-import api
 import models
 
 
@@ -267,7 +266,7 @@ class MusicAlert(ft.AlertDialog):
         self.modal = True
 
     def show_detial(self):
-        self.page.go(f"/player/{self.music_playing.song_id}")  # type: ignore
+        self.page.go(f"/player")  # type: ignore
         self.page.close(self)  # type: ignore
 
     def format_time(self, seconds: float) -> str:

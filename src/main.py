@@ -35,7 +35,8 @@ class App:
 
     def route_change(self, e):
         """处理路由变化"""
-        print(e)
+        self.globals_var.music_playing.position_callbacks = []
+        self.globals_var.music_playing.state_callbacks = []
         # 删除最后一项重复route
         if self.globals_var.page.route == self.globals_var.page.views[-1].route:
             print(f"Removing duplicate route: {self.globals_var.page.route}")
@@ -56,9 +57,10 @@ class App:
             playlist_id = int(self.troute.id) # type: ignore
             print(f"Loading playlist with ID: {playlist_id}")
             self.globals_var.page.views.append(playlist.PlaylistPage(playlist_id, self.globals_var))
-        elif self.troute.match("/player/:id"):
-            song_id = int(self.troute.id) # type: ignore
-            self.globals_var.page.views.append(player.PlayerPage(song_id, self.globals_var))
+        elif self.troute.match("/player"):
+            self.globals_var.page.views.append(player.PlayerPage(self.globals_var))
+        elif self.troute.match("/player/reload"):
+            self.globals_var.page.go("/player")
         else:
             # 处理未知路由，重定向到首页
             print("Unknown route, redirecting to home")

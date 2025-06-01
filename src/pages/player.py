@@ -1,62 +1,39 @@
 """音乐播放页面"""
 
 import flet as ft
-import flet_audio as fa
-import api
-import requests
-import base64
 import models
 
 
 class PlayerPage(ft.View):
     """音乐播放页面"""
 
-    def __init__(self, song_id: int, globals_var: models.Globals):
+    def __init__(self, globals_var: models.Globals):
         super().__init__()
 
         self.page = globals_var.page
         self.api = globals_var.music_api
         self.music_playing = globals_var.music_playing
-        self.song_id = song_id
-        self.route = f"/player/{song_id}"
+        self.globals = globals_var
+        self.route = f"/player"
         self.adaptive = True
         self.can_pop = True
         self.scroll = ft.ScrollMode.AUTO
         self.padding = ft.padding.all(20)
 
         self.appbar = ft.AppBar(
-            title=ft.Text(f"正在加载 {song_id}"),
-        )  # 加载数据和视图
-        self.load_song_data()
+            title=ft.Text(f"正在加载"),
+        )  
+        
+        # 加载数据和视图
         self.load_view()
 
         # 注册回调
         self.music_playing.add_position_callback(self.update_position)
         self.music_playing.add_state_callback(self.update_state)
 
-    def load_song_data(self) -> None:
-        """加载歌曲数据"""
-        self.song_info = self.api.song_detail(self.song_id)
-        if self.song_id == self.music_playing.song_id:
-            return
-        self.song_url = self.api.songs_url(self.song_id)
-        self.song_data = (
-            requests.get(self.song_url.url).content if self.song_url else None
-        )
-        # 设置歌曲并播放
-        if self.song_data:
-            self.music_playing.set_song(
-                self.song_info.id,
-                self.song_info.name,
-                base64.b64encode(self.song_data).decode("utf-8"),
-                self.song_info.album.picUrl,
-            )
-
     def load_view(self) -> None:
         """加载视图"""
-        if not self.song_info:
-            self.controls = [ft.Text("歌曲信息或URL加载失败", size=20, color="red")]
-            return
+        self.globals.refresh_music_playing()
 
         self.appbar = ft.AppBar()
 
@@ -115,7 +92,7 @@ class PlayerPage(ft.View):
                             content=ft.Column(
                                 controls=[
                                     ft.Text(
-                                        self.song_info.name,
+                                        self.music_playing.song_name,
                                         size=24,
                                         weight=ft.FontWeight.BOLD,
                                         text_align=ft.TextAlign.CENTER,
@@ -124,7 +101,7 @@ class PlayerPage(ft.View):
                                         " / ".join(
                                             [
                                                 artist.name
-                                                for artist in self.song_info.artists
+                                                for artist in self.music_playing.artists
                                             ]
                                         ),
                                         size=16,
@@ -140,7 +117,7 @@ class PlayerPage(ft.View):
                         # 封面图片
                         ft.Container(
                             content=ft.Image(
-                                src=self.song_info.album.picUrl,
+                                src=self.music_playing.song_pic,
                                 width=300,
                                 height=300,
                                 border_radius=ft.border_radius.all(10),
@@ -220,10 +197,12 @@ class PlayerPage(ft.View):
 
     def previous_track(self, e):
         """播放上一首"""
-        # TODO: 实现播放列表功能后完善
-        print("Previous track")
+        if self.globals.music_playing_index > 0:
+            self.globals.music_playing_index -= 1
+            self.page.go("/player/reload")  # type: ignore
 
     def next_track(self, e):
         """播放下一首"""
-        # TODO: 实现播放列表功能后完善
-        print("Next track")
+        if self.globals.music_playing_index < len(self.globals.music_playing_list) - 1:
+            self.globals.music_playing_index += 1
+            self.page.go("/player/reload")  # type: ignore
