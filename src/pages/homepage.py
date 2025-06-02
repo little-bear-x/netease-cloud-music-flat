@@ -65,6 +65,8 @@ class Homepage(ft.View):
                 ft.NavigationBarDestination(icon=ft.Icons.EXPLORE, label="推荐"),
                 ft.NavigationBarDestination(icon=ft.Icons.PERSON, label="我的"),
             ],
+            selected_index=0,  # 默认选中"推荐"标签
+            on_change=self.nav_change,
             border=ft.Border(
                 top=ft.BorderSide(
                     color=ft.CupertinoColors.SYSTEM_GREY2, width=0)
@@ -135,10 +137,12 @@ class Homepage(ft.View):
 
     def to_songlist(self, songlist_id: int):
         """跳转到歌单页面"""
-        # print(f"跳转到歌单页面: {songlist_id}")
-        # print(self.api.playlist_detail(songlist_id))  # 调试输出
-        print(f"跳转到歌单页面: {songlist_id}")
         self.page.go(f"/playlist/{songlist_id}")  # type: ignore
+
+    def nav_change(self, e):
+        """处理导航栏切换"""
+        if e.control.selected_index == 1:  # 切换到我的页面
+            self.page.go("/my")  # type: ignore
 
 
 class MusicAlert(ft.AlertDialog):
@@ -150,6 +154,13 @@ class MusicAlert(ft.AlertDialog):
         self.music_playing = globals_var.music_playing
         self.globals = globals_var
 
+        self.load_view()
+
+        self.music_playing.add_position_callback(self.update_position)
+        self.music_playing.add_state_callback(self.update_state)
+
+    def load_view(self):
+        """加载音乐播放提示对话框"""
         # 进度条
         self.progress_bar = ft.Slider(
             value=0,
@@ -174,17 +185,6 @@ class MusicAlert(ft.AlertDialog):
             data="play",  # 用于跟踪按钮状态
             on_click=self.toggle_play,
         )
-
-        # 注册回调
-        self.music_playing.add_position_callback(self.update_position)
-        self.music_playing.add_state_callback(self.update_state)
-
-        self.load_view()
-
-
-    def load_view(self):
-        """加载音乐播放提示对话框"""
-        
         if not self.music_playing.song_id:
             self.title = ft.Text(
                 self.music_playing.song_name or "正在播放的音乐将会显示在这里♥️"
@@ -299,7 +299,7 @@ class MusicAlert(ft.AlertDialog):
         """跳转到指定位置"""
         duration = self.music_playing.duration
         position = (float(e.control.value) * duration) / 100  # type: ignore
-        print(position)
+        models.debug(f"seek position: {position}")
         self.music_playing.seek(int(position))
 
     def update_state(self, state):
@@ -323,11 +323,9 @@ class MusicAlert(ft.AlertDialog):
         if self.globals.music_playing_index > 0:
             self.globals.music_playing_index -= 1
             self.globals.refresh_music_playing()
-            self.page.close(self)  # type: ignore
 
     def next_track(self, e):
         """播放下一首"""
         if self.globals.music_playing_index < len(self.globals.music_playing_list) - 1:
             self.globals.music_playing_index += 1
             self.globals.refresh_music_playing()
-            self.page.close(self)  # type: ignore

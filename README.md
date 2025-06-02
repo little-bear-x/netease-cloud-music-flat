@@ -1,81 +1,28 @@
-# NeteaseCloudMusicFlat app
+# NeteaseCloudMusicFlat 开发中的网易云Android客户端
 
-## Run the app
+**本项目已基本放弃开发**
 
-### uv
-
-Run as a desktop app:
-
+## 运行应用
+推荐使用`uv`管理器运行
+**运行方法**
+1. 安装依赖
+```sh
+uv pip install --requirements pyproject.toml
 ```
-uv run flet run
+2. 运行测试
+```sh
+uv run flet run --android
 ```
+3. 参照[官方文档](https://flet.dev/docs/getting-started/testing-on-android)完成手机测试
 
-Run as a web app:
 
-```
-uv run flet run --web
-```
+如需更多信息，请访问[Flet文档](https://flet.dev/docs/getting-started/).
 
-### Poetry
+## 构建应用
+请参考[Flet Android打包文档](https://flet.dev/docs/publish/android/).
 
-Install dependencies from `pyproject.toml`:
-
-```
-poetry install
-```
-
-Run as a desktop app:
-
-```
-poetry run flet run
-```
-
-Run as a web app:
-
-```
-poetry run flet run --web
-```
-
-For more details on running the app, refer to the [Getting Started Guide](https://flet.dev/docs/getting-started/).
-
-## Build the app
-
-### Android
-
-```
-flet build apk -v
-```
-
-For more details on building and signing `.apk` or `.aab`, refer to the [Android Packaging Guide](https://flet.dev/docs/publish/android/).
-
-### iOS
-
-```
-flet build ipa -v
-```
-
-For more details on building and signing `.ipa`, refer to the [iOS Packaging Guide](https://flet.dev/docs/publish/ios/).
-
-### macOS
-
-```
-flet build macos -v
-```
-
-For more details on building macOS package, refer to the [macOS Packaging Guide](https://flet.dev/docs/publish/macos/).
-
-### Linux
-
-```
-flet build linux -v
-```
-
-For more details on building Linux package, refer to the [Linux Packaging Guide](https://flet.dev/docs/publish/linux/).
-
-### Windows
-
-```
-flet build windows -v
-```
-
-For more details on building Windows package, refer to the [Windows Packaging Guide](https://flet.dev/docs/publish/windows/).
+## 完成内容
+1. 搜索歌曲
+2. 歌曲播放
+3. 高点击率歌单推荐
+4. 登录(即将完成)

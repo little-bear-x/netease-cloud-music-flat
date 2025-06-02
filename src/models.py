@@ -5,6 +5,11 @@ import flet_audio as fa
 import requests
 import base64
 from player import MusicPlayerThread
+from logging import debug, info, warning, error, critical
+import logging
+
+LOG_FORMAT = " %(asctime)s - %(filename)s[func:%(funcName)s line:%(lineno)d]\n%(levelname)s: %(message)s\n"
+logging.basicConfig(level=logging.INFO, format=LOG_FORMAT, filename="log.txt")
 
 
 class MusicPlaying:
@@ -15,7 +20,7 @@ class MusicPlaying:
         self.song_name: str | None = None
         self.song_pic: str | None = None
         self.artists: list[api.SingerInfo] = []
-        
+
         # 创建音乐播放线程
         self._player = MusicPlayerThread(page=page)
         self._player.add_position_callback(self.update_position)
@@ -83,7 +88,7 @@ class MusicPlaying:
         song_artists: list[api.SingerInfo],
     ):
         """设置当前播放的歌曲信息"""
-        print(f"Setting song: {song_name} (ID: {song_id})")
+        info(f"Setting song: {song_name} (ID: {song_id})")
         self.song_id = song_id
         self.song_name = song_name
         self.song_pic = song_pic
@@ -135,17 +140,66 @@ class Globals:
         self.music_api = api.MusicApi()
         self.page = p
         self.music_playing = MusicPlaying(page=p)
+        # 检查并恢复登录状态
+        self.check_and_restore_login()
+
+    def check_and_restore_login(self):
+        """检查并恢复登录状态"""
+        login_status = self.page.client_storage.get("login_status")
+        if login_status:
+            info(f"发现已保存的登录状态: {login_status}")
+            # 恢复csrf token
+            csrf_token = self.page.client_storage.get("csrf_token")
+            info(f"恢复_csrf_token: {csrf_token}")
+            if csrf_token:
+                # 恢复之前保存的状态
+                self.music_api._csrf_token = csrf_token
+                # 验证登录状态是否有效
+                try:
+                    status = self.music_api.login_status()
+                    if status.account:
+                        info(f"登录状态验证成功: {status}")
+                        return True
+                except Exception as e:
+                    error(f"登录状态验证失败: {str(e)}")
+
+        # 如果验证失败，清除保存的状态
+        self.clear_login_status()
+        warning("登录状态已失效")
+        return False
+
+    def clear_login_status(self):
+        """清除保存的登录状态"""
+        self.page.client_storage.remove("login_status")
+        self.page.client_storage.remove("csrf_token")
+        # 清除 API 客户端的状态
+        self.music_api._cookies = None
+        self.music_api._csrf_token = ""
+
+    def save_login_status(self, login_info):
+        """保存登录状态"""
+        # 保存登录信息
+        self.page.client_storage.set("login_status", {
+            "account": login_info.account,
+            "profile": login_info.profile
+        })
+        # 保存csrf token
+        self.page.client_storage.set(
+            "csrf_token", self.music_api._csrf_token if self.music_api._csrf_token else "")
+        info(f"当前cookies: {self.music_api._cookies}; _csrf_token: "
+              f"{self.music_api._csrf_token}")
+        info("登录状态已保存")
 
     def refresh_music_playing(self):
         """刷新当前播放的歌曲"""
         if self.music_playing_list[self.music_playing_index].id == self.music_playing.song_id:
             return
+        info(f"刷新当前播放的歌曲: {self.music_playing_list[self.music_playing_index].name}")
         song_info = self.music_api.song_detail(
             self.music_playing_list[self.music_playing_index].id
         )
         song_url = self.music_api.songs_url(
             self.music_playing_list[self.music_playing_index].id)
-        print(song_url)
         song_data = (
             requests.get(song_url.url).content if song_url else None
         )
@@ -158,3 +212,17 @@ class Globals:
             song_info.album.picUrl if song_info.album.picUrl else "",
             song_info.artists
         )
+
+    def logout(self):
+        """登出账号"""
+        try:
+            # 调用网易云音乐的登出接口
+            self.music_api.logout()
+            info("已成功登出账号")
+        except Exception as e:
+            error(f"登出时发生错误: {str(e)}")
+        finally:
+            # 无论登出接口是否调用成功，都清除本地保存的登录状态
+            self.clear_login_status()
+            # 重定向到登录页
+            self.page.go("/login")

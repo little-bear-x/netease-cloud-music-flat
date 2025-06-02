@@ -11,6 +11,7 @@ import string
 from enum import Enum
 from typing import Optional, Dict, Any, List, Union, Tuple
 import httpx
+from logging import info, warning, error
 
 from .constants import BASE_URL, TIMEOUT, USER_AGENT_LIST, LINUX_USER_AGENT
 from .encrypt import Crypto
@@ -73,11 +74,7 @@ class MusicApi:
             limits=httpx.Limits(max_connections=max_connections or None),
         )
         self._csrf_token = ""
-        self._cookies = {
-            "os": "pc",
-            "appver": "2.7.1.198277",
-            "_ntes_nuid": create_random_string(32),
-        }
+        self._cookies = None
 
     def _extract_csrf_token(self, cookies: Dict[str, str]) -> None:
         """Extract CSRF token from cookies."""
@@ -133,12 +130,6 @@ class MusicApi:
             else:
                 data = params
 
-        # Print request info for debugging
-        # print(f"\nRequesting {url} with method {method}")
-        # print(f"Headers: {headers}")
-        # print(f"Data: {data}")
-        # print(f"Cookies before: {self._cookies}")
-
         try:
             resp = self.client.request(
                 method=method,
@@ -149,26 +140,22 @@ class MusicApi:
             )
             resp.raise_for_status()
 
-            # Print response info for debugging
-            # print(f"Response status: {resp.status_code}")
-            # print(f"Response headers: {resp.headers}")
-            # print(f"Response cookies: {resp.cookies}")
-            # print(f"Response text: {resp.text}")
-
             # Update cookies and CSRF token
-            self._cookies.update(dict(resp.cookies))
-            self._extract_csrf_token(dict(resp.cookies))
-            # print(f"Cookies after: {self._cookies}")
+            if resp.cookies.get("__csrf") is not None or resp.cookies.get("NMTID") is not None:
+                info("服务更新cookies")
+                self._cookies = resp.cookies
+                self._csrf_token = self._cookies.get("__csrf")
+                info(f"当前cookies: {self._cookies} && csrf: {self._csrf_token}")
 
             result = resp.json()
             return result
         except Exception as e:
-            print(f"Request failed: {str(e)}")
+            error(f"Request failed: {str(e)}")
             if isinstance(e, httpx.HTTPError) and hasattr(e, "response"):
                 response = getattr(e, "response", None)
                 if response:
-                    print(f"Response status: {response.status_code}")
-                    print(f"Response text: {response.text}")
+                    error(f"Response status: {response.status_code}")
+                    error(f"Response text: {response.text}")
             return {"code": -1, "msg": str(e)}
 
     def login(self, username: str, password: str) -> LoginInfo:
@@ -216,18 +203,17 @@ class MusicApi:
         unikey = result["unikey"]
         return (f"https://music.163.com/login?codekey={unikey}", unikey)
 
-    def login_qr_check(self, key: str) -> Msg:
+    def login_qr_check(self, key: str) -> Tuple[Msg, LoginInfo]:
         """Check QR code login status."""
         path = "/api/login/qrcode/client/login"
         params = {"key": key, "type": "1"}
         result = self._request("POST", path, params)
-        return to_msg(json.dumps(result))
+        return (to_msg(json.dumps(result)), self.login_status())
 
     def login_status(self) -> LoginInfo:
         """Get current login status."""
         path = "/api/nuser/account/get"
         result = self._request("POST", path)
-        print(result)
         return to_login_info(json.dumps(result))
 
     def logout(self) -> None:
@@ -835,7 +821,6 @@ class MusicApi:
         path = "/api/v2/banner/get"
         params = {"clientType": "pc"}
         result = self._request("POST", path, params)
-        print(result)
         return to_banners_info(json.dumps(result))
 
     def download_img(self, url: str, path: str, width: int, height: int) -> None:
